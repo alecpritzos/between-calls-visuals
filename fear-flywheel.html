@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Fear Flywheel â Anthropic</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aedtuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/framer-motion@11.11.17/dist/framer-motion.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  html, body, #root { margin: 0; padding: 0; width: 100%; height: 100%; background: #09090b; overflow: hidden; }
+  .font-serif-ed { font-family: 'Fraunces', 'Times New Roman', serif; font-optical-sizing: auto; }
+  .font-mono-ed { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  /* Scale the 1920x1080 stage to fit viewport */
+  .stage-wrap { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="env,react">
+const { useEffect, useRef, useState, useMemo } = React;
+const { motion, AnimatePresence } = window.Motion || window.framerMotion || window["framer-motion"] || {};
+
+// ---------- Data ----------
+const EVENTS = [
+  {
+    date: "FEBRUARY 2019",
+    source: "OPENAI BLOG",
+    headline: "GPT-2: Too DangerousÂ toÂ Release",
+    press: [
+      { outlet: "The Guardian", line: "OpenAI withholds its new AI over misuse fears" },
+      { outlet: "TechCrunch",   line: "Researchers warn of weaponized text generation" },
+      { outlet: "Slate",        line: "The lab that's too scared of its own invention" },
+    ],
+    precedent: true,
+    precedentLine: "Same authors will co-found Anthropic in 2021",
+    precedentNames: ["Dario Amodei", "Daniela Amodei", "Jack Clark"],
+    startVal: 0, endVal: 0,
+    gapDays: null,
+  },
+  {
+    date: "JULY 2023",
+    source: "U.S. SENATE JUDICIARY SUBCOMMITTEE",
+    headline: "Bioweapons in 2â3Â Years â\nSenate Testimony",
+    press: [
+      { outlet: "Reuters",   line: "Anthropic CEO warns AI could aid bioterror" },
+      { outlet: "NYT",       line: "Frontier AI, heard under oath on Capitol Hill" },
+      { outlet: "Bloomberg", line: "The biosecurity case against moving fast" },
+    ],
+    funding: { amount: "$6B", detail: "Amazon $4B Â· Google $2B" },
+    startVal: 0, endVal: 18,
+    gapDays: 64,
+  },
+  {
+    date: "DECEMBER 2024",
+    source: "ANTHROPIC RESEARCH",
+    headline: "Alignment Faking\nin Large Language Models",
+    press: [
+      { outlet: "Wired",            line: "Models learn to perform values they don't hold" },
+      { outlet: "VentureBeat",      line: "Evidence of strategic deception in frontier AI" },
+      { outlet: "MIT Tech Review",  line: "The alignment problem just got stranger" },
+    ],
+    funding: { amount: "$3.5B", detail: "Series E" },
+    startVal: 18, endVal: 61.5,
+    gapDays: 76,
+  },
+  {
+    date: "MAY 2025",
+    source: "ANTHROPIC SYSTEM CARD",
+    headline: "Claude Opus 4\nBlackmails Engineer",
+    press: [
+      { outlet: "The Verge", line: "Red-team finds Opus 4 resorting to coercion" },
+      { outlet: "WSJ",       line: "AI model threatens to expose affair to avoid shutdown" },
+      { outlet: "Fortune",   line: "The self-preservation problem goes live" },
+    ],
+    funding: { amount: "$9B ARR", detail: "Revenue ramp" },
+    startVal: 61.5, endVal: 183,
+    gapDays: 45,
+  },
+  {
+    date: "APRIL 2026",
+    source: "ANTHROPIC CAPABILITIES REPORT",
+    headline: "Mythos: Too PowerfulÂ toÂ Release",
+    press: [
+      { outlet: "PBS",         line: "Anthropic pauses deployment of next flagship" },
+      { outlet: "Bloomberg",   line: "The model the lab won't ship â yet" },
+      { outlet: "Stratechery", line: "Scarcity as safety, safety as moat" },
+    ],
+    funding: { amount: "$800B", detail: "Valuation offers" },
+    startVal: 183, endVal: 800,
+    gapDays: 8,
+  },
+];
+
+// ---------- Timing ----------
+const STAGE = 1.5;                 // seconds per stage
+const EVENT_LEN = STAGE * 4;       // 6s per event
+const LOOP_CORE = EVENT_LEN * 5;   // 30s core
+const HOLD = 2.0;                  // hold at end
+const REWIND = 2.0;                // rewind duration
+const LOOP_FULL = LOOP_CORE + HOLD + REWIND; // 34s
+
+// ---------- Helpers ----------
+function formatBillions(v) {
+  // v is in $B. Format like "$18.0B" or "$800B" or "$0"
+  if (v <= 0.001) return "$0";
+  if (v >= 100) return "$" + v.toFixed(0) + "B";
+  return "$" + v.toFixed(1) + "B";
+}
+
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+function easeInOutCubic(t) { return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2; }
+
+// ---------- Noise background (SVG) ----------
+const NOISE_SVG = `
+<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'>
+  <filter id='n'>
+    <feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/>
+    <feColorMatrix values='0 0 0 0 0.95  0 0 0 0 0.75  0 0 0 0 0.3  0 0 0 0.35 0'/>
+  </filter>
+  <rect width='100%' height='100%' filter='url(%23n)'/>
+</svg>`;
+const NOISE_URL = "data:image/svg+xml;utf8," + encodeURIComponent(NOISE_SVG).replace(/%23n/g, "%23n");
+
+// ---------- Main Component ----------
+function FearFlywheel() {
+  // Animation clock (seconds, 0..LOOP_FULL)
+  const [t, setT] = useState(0);
+  const rafRef = useRef(0);
+  const startRef = useRef(0);
+  const recordingRef = useRef(false);
+  const [recording, setRecording] = useState(false);
+  const stageRef = useRef(null);
+
+  useEffect(() => {
+    let raf;
+    const tick = (now) => {
+      if (!startRef.current) startRef.current = now;
+      const elapsed = (now - startRef.current) / 1000;
+      const loopT = elapsed % LOOP_FULL;
+      setT(loopT);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    rafRef.current = raf;
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  // ---------- Derived state from t ----------
+  const inCore = t < LOOP_CORE;
+  const inHold = t >= LOOP_CORE && t < LOOP_CORE + HOLD;
+  const inRewind = t >= LOOP_CORE + HOLD;
+
+  let eventIdx = 0, stageIdx = 0, stageT = 0; // stageT in [0,1)
+  if (inCore) {
+    eventIdx = Math.floor(t / EVENT_LEN);
+    const localT = t - eventIdx * EVENT_LEN;
+    stageIdx = Math.min(3, Math.floor(localT / STAGE));
+    stageT = (localT - stageIdx * STAGE) / STAGE;
+  } else if (inHold) {
+    eventIdx = 4; stageIdx = 3; stageT = 1;
+  } else {
+    eventIdx = 4; stageIdx = 3; stageT = 1;
+  }
+
+  // Counter value
+  let counterVal = 0;
+  if (inCore) {
+    const ev = EVENTS[eventIdx];
+    // Counter only rolls during stage 4
+    if (stageIdx < 3) counterVal = ev.startVal;
+    else {
+      const p = easeOutCubic(Math.min(1, stageT));
+      counterVal = ev.startVal + (ev.endVal - ev.startVal) * p;
+    }
+  } else if (inHold) {
+    counterVal = 800;
+  } else {
+    // rewind 800 -> 0
+    const p = (t - LOOP_CORE - HOLD) / REWIND;
+    counterVal = 800 * (1 - easeInOutCubic(Math.min(1, p)));
+  }
+
+  const ev = EVENTS[eventIdx];
+
+  return (
+    <div className="stage-wrap bg-zinc-950">
+      <Stage1920
+        ev={ev}
+        stageIdx={stageIdx}
+        stageT={stageT}
+        inRewind={inRewind}
+        counterVal={counterVal}
+        stageRef={stageRef}
+      />
+      {/* Unobtrusive record button, outside the scaled stage so it's excluded from capture */}
+      <RecordButton stageRef={stageRef} recording={recording} setRecording={setRecording}
+        startRef={startRef} />
+    </div>
+  );
+}
+
+// ---------- 1920x1080 Stage ----------
+function Stage1920({ ev, stageIdx, stageT, inRewind, counterVal, stageRef }) {
+  // scale to fit
+  const [scale, setScale] = useState(1);
+  useEffect(() => {
+    const update = () => {
+      const s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+      setScale(s);
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  return (
+    <div
+      ref={stageRef}
+      className="relative bg-zinc-950 text-zinc-100 overflow-hidden"
+      style={{
+        width: 1920, height: 1080,
+        transform: `scale(${scale})`,
+        transformOrigin: 'center center',
+      }}
+    >
+      {/* Noise overlay */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage: `url("${NOISE_URL}")`,
+          backgroundRepeat: 'repeat',
+          opacity: 0.18,
+          mixBlendMode: 'overlay',
+        }}
+      />
+      {/* Vignette */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: 'radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,0.55) 100%)',
+        }}
+      />
+
+      {/* Editorial masthead */}
+      <div className="absolute top-12 left-16 flex items-center gap-6">
+        <div className="w-10 h-[2px] bg-amber-500" />
+        <div className="font-mono-ed text-[14px] tracking-[0.28em] uppercase text-zinc-400">
+          The Flywheel &nbsp;Â·&nbsp; A Pattern in Five Acts
+        </div>
+      </div>
+
+      {/* Counter top-right */}
+      <Counter value={counterVal} inRewind={inRewind} gapDays={ev.gapDays}
+        showGap={stageIdx >= 3 && stageT > 0.55 && !ev.precedent} />
+
+      {/* Event index rail bottom-left */}
+      <EventRail evIdx={EVENTS.indexOf(ev)} />
+
+      {/* Stage content */}
+      <div className="absolute inset-0 flex items-center">
+        <div className="w-full px-28">
+          <StageContent ev={ev} stageIdx={stageIdx} stageT={stageT} />
+        </div>
+      </div>
+
+      {/* Footer line */}
+      <div className="absolute bottom-12 left-16 right-16 flex justify-between items-end">
+        <div className="font-serif-ed italic text-zinc-500 text-[18px]">
+          Anthropic, 2019 â 2026
+        </div>
+        <div className="font-mono-ed text-[12px] tracking-[0.3em] uppercase text-zinc-600">
+          Sources: public statements, press, funding announcements
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Stage Content (morphs per stage) ----------
+function StageContent({ ev, stageIdx, stageT }) {
+  // We render headline + press + raise; control their visibility and motion based on stageIdx.
+
+  // Headline slides in during stage 0, stays for remaining stages.
+  const headlineProgress = stageIdx === 0 ? easeOutCubic(Math.min(1, stageT * 1.2)) : 1;
+  const headlineX = -100 + 100 * headlineProgress;
+  const headlineOpacity = headlineProgress;
+
+  // After stage 0, headline shifts slightly up to make room
+  const headlineShiftY = stageIdx >= 1 ? -40 : 0;
+  const headlineScale = stageIdx >= 2 ? 0.85 : (stageIdx >= 1 ? 0.95 : 1);
+
+  // Press cards appear at stage 1
+  const showPress = stageIdx >= 1;
+
+  // Raise/precedent appears at stage 2
+  const showRaise = stageIdx >= 2;
+
+  return (
+    <div className="relative">
+      {/* Headline block */}
+      <div
+        style={{
+          transform: `translate(${headlineX}px, ${headlineShiftY}px) scale(${headlineScale})`,
+          opacity: headlineOpacity,
+          transformOrigin: 'left center',
+          transition: 'transform 400ms cubic-bezier(0.16,1,0.3,1), opacity 300ms ease-out',
+        }}
+      >
+        <div className="font-mono-ed text-[15px] tracking-[0.3em] uppercase text-amber-500 mb-6">
+          {ev.date} &nbsp;â&nbsp; <span className="text-zinc-400">{ev.source}</span>
+        </div>
+        <div
+          className="font-serif-ed font-medium text-zinc-50 leading-[1.02] tracking-[-0.02em] whitespace-pre-line"
+          style={{ fontSize: 96, maxWidth: 1400 }}
+        >
+          {ev.headline}
+        </div>
+        <div className="mt-8 flex items-center gap-5">
+          <div className="w-20 h-[1px] bg-amber-600" />
+          <div className="font-serif-ed italic text-zinc-400 text-[22px]">
+            Stage {stageIdx + 1} of 4 &nbsp;Â·&nbsp; {["The Warning","The Press","The Raise","The Valuation"][stageIdx]}
+          </div>
+        </div>
+      </div>
+
+      {/* Press cards */}
+      <PressRow press={ev.press} show={showPress} stageIdx={stageIdx} stageT={stageT} />
+
+      {/* Raise or precedent */}
+      <RaiseCard ev={ev} show={showRaise} stageIdx={stageIdx} stageT={stageT} />
+    </div>
+  );
+}
+
+function PressRow({ press, show, stageIdx, stageT }) {
+  // Shown in stages 1..3. Staggered entry at stage 1. Recedes when Raise is present.
+  const recede = stageIdx >= 2;
+  const baseTop = 420; // below headline
+  const rotations = [-3, 2, -1];
+
+  return (
+    <div
+      className="absolute left-0 right-0"
+      style={{
+        top: baseTop,
+        opacity: show ? 1 : 0,
+        transform: recede ? 'translateY(40px) scale(0.86)' : 'translateY(0) scale(1)',
+        filter: recede ? 'blur(0.5px) brightness(0.7)' : 'none',
+        transition: 'transform 500ms cubic-bezier(0.16,1,0.3,1), filter 400ms ease-out, opacity 300ms',
+      }}
+    >
+      <div className="flex gap-10">
+        {press.map((p, i) => {
+          const localDelay = i * 0.15;
+          const appear = stageIdx === 1 ? Math.max(0, Math.min(1, (stageT - localDelay) / 0.5)) : 1;
+          const easedAppear = easeOutCubic(appear);
+          return (
+            <div
+              key={i}
+              className="bg-zinc-900/70 border border-zinc-800 backdrop-blur-sm px-8 py-7"
+              style={{
+                width: 420,
+                transform: `rotate(${rotations[i]}deg) translateY(${(1-easedAppear)*30}px)`,
+                opacity: stageIdx === 1 ? easedAppear : 1,
+                boxShadow: '0 30px 60px -30px rgba(0,0,0,0.9), 0 1px 0 rgba(255,255,255,0.03) inset',
+                transition: stageIdx > 1 ? 'all 400ms cubic-bezier(0.16,1,0.3,1)' : 'none',
+              }}
+            >
+              <div className="font-mono-ed text-[12px] tracking-[0.28em] uppercase text-amber-500 mb-3">
+                {p.outlet}
+              </div>
+              <div className="font-serif-ed text-zinc-100 leading-snug" style={{ fontSize: 28 }}>
+                {p.line}
+              </div>
+              <div className="mt-6 flex items-center gap-3">
+                <div className="w-6 h-[1px] bg-zinc-700" />
+                <div className="font-mono-ed text-[10px] tracking-[0.25em] uppercase text-zinc-500">
+                  Press Â· 0{i+1}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function RaiseCard({ ev, show, stageIdx, stageT }) {
+  // Appears stage 2 with spring scale from 0.8 -> 1.0. Stays for stage 3.
+  const appear = stageIdx === 2 ? Math.min(1, stageT * 1.15) : (stageIdx >= 2 ? 1 : 0);
+  // Spring-ish
+  const springed = appear >= 1 ? 1 : 1 - Math.pow(1 - appear, 3);
+  const scale = 0.8 + 0.2 * springed + (appear > 0.8 ? Math.sin((appear - 0.8) * Math.PI * 5) * 0.01 : 0);
+  const opacity = springed;
+
+  if (!show) return null;
+
+  return (
+    <div
+      className="absolute"
+      style={{
+        top: 640,
+        left: 0,
+        right: 0,
+        display: 'flex',
+        justifyContent: 'center',
+        opacity,
+        transform: `scale(${scale})`,
+        transformOrigin: 'center center',
+      }}
+    >
+      {ev.precedent ? (
+        <div className="relative border border-amber-600/40 bg-zinc-900/60 px-16 py-10 max-w-[1400px]">
+          <div className="absolute -top-[1px] left-0 w-24 h-[2px] bg-amber-500" />
+          <div className="font-mono-ed text-[13px] tracking-[0.32em] uppercase text-amber-500 mb-4">
+            Precedent &nbsp;Â·&nbsp; No Anthropic funding yet
+          </div>
+          <div className="font-serif-ed text-zinc-50 leading-tight" style={{ fontSize: 52 }}>
+            {ev.precedentLine}
+          </div>
+          <div className="mt-8 flex flex-wrap gap-x-12 gap-y-3">
+            {ev.precedentNames.map((n) => (
+              <div key={n} className="font-serif-ed italic text-zinc-300" style={{ fontSize: 28 }}>
+                {n}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="relative border border-amber-600/40 bg-zinc-900/60 px-20 py-12">
+          <div className="absolute -top-[1px] left-0 w-24 h-[2px] bg-amber-500" />
+          <div className="font-mono-ed text-[13px] tracking-[0.32em] uppercase text-amber-500 mb-4">
+            The Raise
+          </div>
+          <div className="flex items-baseline gap-10">
+            <div className="font-serif-ed font-semibold text-zinc-50 leading-none tracking-[-0.02em]"
+              style={{ fontSize: 96 }}>
+              {ev.funding.amount}
+            </div>
+            <div className="font-serif-ed italic text-zinc-300" style={{ fontSize: 32 }}>
+              {ev.funding.detail}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------- Counter ----------
+function Counter({ value, inRewind, gapDays, showGap }) {
+  // Format as "$XXX.XB" with digit roll effect via per-digit springs.
+  const label = formatBillions(value);
+  const [display, setDisplay] = useState(label);
+  useEffect(() => { setDisplay(label); }, [label]);
+
+  const blur = inRewind ? 'blur(2px)' : 'none';
+
+  return (
+    <div className="absolute top-12 right-16 flex flex-col items-end">
+      <div className="font-mono-ed text-[14px] tracking-[0.32em] uppercase text-zinc-400">
+        Anthropic Valuation
+      </div>
+      <div className="mt-3 flex items-center gap-3">
+        <div className="w-10 h-[2px] bg-amber-500" />
+        <div className="font-mono-ed text-[12px] tracking-[0.28em] uppercase text-amber-500">
+          Live through loop
+        </div>
+      </div>
+      <div
+        className="font-serif-ed font-semibold text-zinc-50 leading-none mt-5 tabular-nums"
+        style={{
+          fontSize: 128,
+          letterSpacing: '-0.03em',
+          filter: blur,
+          transition: 'filter 300ms',
+        }}
+      >
+        {display}
+      </div>
+      <div
+        className="mt-4 font-mono-ed text-[14px] tracking-[0.25em] uppercase"
+        style={{
+          opacity: showGap && gapDays != null ? 1 : 0,
+          transform: showGap ? 'translateY(0)' : 'translateY(6px)',
+          transition: 'opacity 500ms ease-out, transform 500ms ease-out',
+          color: '#f59e0b',
+        }}
+      >
+        Warning â Funding: <span className="text-zinc-300">{gapDays ?? 0} days</span>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Event rail ----------
+function EventRail({ evIdx }) {
+  const labels = ["2019", "Jul 2023", "Dec 2024", "May 2025", "Apr 2026"];
+  return (
+    <div className="absolute bottom-[96px] left-16 right-16">
+      <div className="flex items-center gap-8">
+        {labels.map((l, i) => (
+          <React.Fragment key={i}>
+            <div className="flex items-center gap-3">
+              <div
+                className="w-[10px] h-[10px] rounded-full"
+                style={{
+                  background: i < evIdx ? '#78716c' : (i === evIdx ? '#f59e0b' : '#27272a'),
+                  boxShadow: i === evIdx ? '0 0 0 6px rgba(245,158,11,0.15)' : 'none',
+                  transition: 'all 400ms ease-out',
+                }}
+              />
+              <div
+                className="font-mono-ed text-[12px] tracking-[0.28em] uppercase"
+                style={{ color: i === evIdx ? '#fbbf24' : '#52525b' }}
+              >
+                {l}
+              </div>
+            </div>
+            {i < labels.length - 1 && <div className="flex-1 h-[1px] bg-zinc-800" />}
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------- Record Button (hidden during recording) ----------
+function RecordButton({ stageRef, recording, setRecording, startRef }) {
+  const [hovered, setHovered] = useState(false);
+  const [status, setStatus] = useState("Export 30s MP4");
+
+  const exportVideo = async () => {
+    if (recording) return;
+    const stageEl = stageRef.current;
+    if (!stageEl) return;
+
+    // Reset loop clock so recording captures a clean, fresh loop start
+    startRef.current = performance.now();
+
+    setRecording(true);
+    setStatus("Preparing\u2026");
+
+    // We'll draw the stage into a canvas each frame via html2canvas fallback... but we don't have html2canvas.
+    // Instead, use captureStream on a hidden canvas where we repeatedly rasterize via SVG foreignObject.
+
+    const W = 1920, H = 1080, FPS = 30;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    const stream = canvas.captureStream(FPS);
+    // Prefer MP4 if supported, else WebM
+    const mimeCandidates = [
+      'video/mp4;codecs=avc1.42E01E',
+      'video/mp4',
+      'video/webm;codecs=vp9',
+      'video/webm;codecs=vp8',
+      'video/webm',
+    ];
+    let mime = '';
+    for (const m of mimeCandidates) {
+      if (window.MediaRecorder && MediaRecorder.isTypeSupported(m)) { mime = m; break; }
+    }
+    if (!mime) {
+      alert('MediaRecorder not supported in this browser.');
+      setRecording(false); setStatus("Export 30s MP4");
+      return;
+    }
+    const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
+    const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 12_000_000 });
+    const chunks = [];
+    recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `anthropic-fear-flywheel.${ext}`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setRecording(false);
+      setStatus(ext === 'mp4' ? "Export 30s MP4" : "Export 30s WebM");
+    };
+
+    setStatus("Recording\u2026 0%");
+
+    // Rasterize via SVG foreignObject (cloning the live stage DOM each frame)
+    const rasterize = () => {
+      try {
+        const clone = stageEl.cloneNode(true);
+        // Reset the scale transform on the clone's root; we want it at native 1920x1080.
+        clone.style.transform = 'none';
+        clone.style.position = 'static';
+        clone.style.width = W + 'px';
+        clone.style.height = H + 'px';
+
+        const xml = new XMLSerializer().serializeToString(clone);
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
+          <foreignObject width="100%" height="100%">
+            <div xmlns="http://www.w3.org/1999/xhtml" style="width:${W}px;height:${H}px;">
+              ${xml}
+            </div>
+          </foreignObject>
+        </svg>`;
+        const img = new Image();
+        img.onload = () => {
+          ctx.fillStyle = '#09090b';
+          ctx.fillRect(0, 0, W, H);
+          ctx.drawImage(img, 0, 0, W, H);
+        };
+        img.onerror = () => {};
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      } catch (e) {
+        // ignore
+      }
+    };
+
+    recorder.start();
+
+    const DURATION_MS = LOOP_FULL * 1000; // full loop incl. rewind = 34s, but user wants "30s loop". We cut at 30s.
+    const RECORD_MS = 30000;
+
+    const startTs = performance.now();
+    let frame = 0;
+    const frameInterval = 1000 / FPS;
+    const loop = () => {
+      const now = performance.now();
+      const elapsed = now - startTs;
+      rasterize();
+      setStatus(`Recording\u2026 ${Math.min(100, Math.floor(elapsed / RECORD_MS * 100))}%`);
+      if (elapsed >= RECORD_MS) {
+        recorder.stop();
+        return;
+      }
+      // Pace to ~FPS
+      const nextFrame = startTs + (++frame) * frameInterval;
+      const wait = Math.max(0, nextFrame - performance.now());
+      setTimeout(loop, wait);
+    };
+    loop();
+  };
+
+  if (recording) return null; // hidden during recording so it's not in the capture
+
+  return (
+    <button
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={exportVideo}
+      className="fixed bottom-4 right-4 z-50 font-mono-ed text-[11px] tracking-[0.25em] uppercase"
+      style={{
+        padding: '10px 14px',
+        color: hovered ? '#fbbf24' : '#a1a1aa',
+        background: 'rgba(9,9,11,0.7)',
+        border: '1px solid ' + (hovered ? '#f59e0b' : '#3f3f46'),
+        backdropFilter: 'blur(6px)',
+        cursor: 'pointer',
+        transition: 'all 200ms',
+      }}
+    >
+      {status}
+    </button>
+  );
+}
+
+// ---------- Mount ----------
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<FearFlywheel />);
+</script>
+</body>
+</html>
