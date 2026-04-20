@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Bill Carter â Node Map</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B1220;
+    --bg-2:#0F172A;
+    --copper:#B87333;
+    --copper-soft:#D89A5E;
+    --ink:#F5F5F0;
+    --muted:#8A93A6;
+  }
+  html,body{background:var(--bg); color:var(--ink);}
+  body{
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    font-feature-settings: "ss01","cv11";
+    background:
+      radial-gradient(1200px 700px at 20% 30%, rgba(184,115,51,0.10), transparent 60%),
+      radial-gradient(900px 600px at 85% 75%, rgba(184,115,51,0.06), transparent 60%),
+      linear-gradient(180deg, #0B1220 0%, #0A0F1C 100%);
+    min-height:100vh;
+  }
+  .serif{ font-family:'Fraunces', 'Times New Roman', serif; letter-spacing:-0.01em;}
+  .mono{ font-family:'JetBrains Mono', ui-monospace, monospace;}
+  .grain::before{
+    content:""; position:absolute; inset:0; pointer-events:none; opacity:.06; mix-blend-mode:overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.8'/></svg>");
+  }
+  /* Bill's active ring */
+  .active-ring{
+    box-shadow:
+      0 0 0 2px rgba(184,115,51,0.55),
+      0 0 0 6px rgba(184,115,51,0.18),
+      0 0 30px 2px rgba(184,115,51,0.35);
+    animation: pulseRing 3.2s ease-in-out infinite;
+  }
+  @keyframes pulseRing{
+    0%,100%{ box-shadow: 0 0 0 2px rgba(184,115,51,0.55), 0 0 0 6px rgba(184,115,51,0.18), 0 0 24px 2px rgba(184,115,51,0.28);}
+    50%   { box-shadow: 0 0 0 2px rgba(184,115,51,0.75), 0 0 0 10px rgba(184,115,51,0.10), 0 0 40px 6px rgba(184,115,51,0.45);}
+  }
+  .dot-live{
+    width:8px;height:8px;border-radius:9999px;background:#7CE2B6;
+    box-shadow: 0 0 0 3px rgba(124,226,182,0.18), 0 0 12px rgba(124,226,182,0.6);
+    animation: blink 2s ease-in-out infinite;
+  }
+  @keyframes blink{ 0%,100%{opacity:1} 50%{opacity:.45} }
+
+  /* SVG pulse along paths */
+  .path-base{ stroke: rgba(184,115,51,0.22); stroke-width:1.2; fill:none; }
+  .path-pulse{
+    stroke: var(--copper-soft); stroke-width:1.6; fill:none;
+    stroke-dasharray: 6 180; stroke-linecap:round;
+    filter: drop-shadow(0 0 4px rgba(216,154,94,0.6));
+    animation: flow 3.6s linear infinite;
+  }
+  @keyframes flow{
+    from{ stroke-dashoffset: 0;}
+    to  { stroke-dashoffset: -600;}
+  }
+
+  /* Node card */
+  .node{
+    position:absolute; transform:translate(-50%,-50%);
+    transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s;
+  }
+  .node .chip{
+    display:flex; align-items:center; justify-content:center;
+    width:64px; height:64px; border-radius:16px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+    border:1px solid rgba(245,245,240,0.10);
+    backdrop-filter: blur(6px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.04);
+    color: var(--copper-soft);
+    transition: transform .35s cubic-bezier(.2,.7,.2,1), border-color .35s, color .35s, box-shadow .35s;
+  }
+  .node:hover{ z-index:30;}
+  .node:hover .chip{
+    transform: scale(1.12);
+    border-color: rgba(184,115,51,0.85);
+    color: #FFD9A8;
+    box-shadow:
+      0 14px 40px rgba(0,0,0,0.55),
+      0 0 0 1px rgba(184,115,51,0.6),
+      0 0 40px rgba(184,115,51,0.35);
+  }
+  .node .tag{
+    position:absolute; left:50%; transform:translate(-50%, 8px);
+    white-space:nowrap; margin-top:10px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:10px; letter-spacing:0.14em; text-transform:uppercase;
+    color: rgba(245,245,240,0.55);
+  }
+  .node .tip{
+    position:absolute; left:50%; top:-14px;
+    transform: translate(-50%, -100%) scale(.96);
+    opacity:0; pointer-events:none;
+    transition: opacity .25s ease, transform .25s ease;
+    background: #0A1020;
+    border:1px solid rgba(184,115,51,0.45);
+    color: var(--ink);
+    padding:10px 12px; border-radius:10px;
+    font-size:12px; line-height:1.35;
+    width: 230px; text-align:left;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.6), 0 0 0 4px rgba(184,115,51,0.08);
+  }
+  .node .tip::after{
+    content:""; position:absolute; left:50%; bottom:-6px; width:10px; height:10px;
+    transform: translateX(-50%) rotate(45deg);
+    background:#0A1020; border-right:1px solid rgba(184,115,51,0.45); border-bottom:1px solid rgba(184,115,51,0.45);
+  }
+  .node:hover .tip{ opacity:1; transform: translate(-50%, -100%) scale(1); }
+  .node .tip .ttl{
+    font-family:'Fraunces', serif; font-weight:500; font-size:13px; color:#FFE6C7; margin-bottom:2px; letter-spacing:-0.01em;
+  }
+  .node .tip .sub{
+    color: rgba(245,245,240,0.72);
+  }
+
+  /* Floating particles */
+  .particle{
+    fill: #FFD9A8;
+    filter: drop-shadow(0 0 4px rgba(216,154,94,0.9));
+  }
+
+  /* Hub glow ring behind avatar */
+  .hub-halo{
+    position:absolute; inset:-28px; border-radius:9999px;
+    background: radial-gradient(closest-side, rgba(184,115,51,0.28), rgba(184,115,51,0.05) 60%, transparent 75%);
+    filter: blur(6px);
+    animation: haloBreath 4.5s ease-in-out infinite;
+    pointer-events:none;
+  }
+  @keyframes haloBreath{ 0%,100%{opacity:.8; transform:scale(1)} 50%{opacity:1; transform:scale(1.06)} }
+
+  /* Frame */
+  .frame{
+    border:1px solid rgba(245,245,240,0.07);
+    border-radius: 20px;
+    background:
+      radial-gradient(900px 500px at 30% 20%, rgba(184,115,51,0.08), transparent 60%),
+      linear-gradient(180deg, rgba(15,23,42,0.7), rgba(10,15,28,0.7));
+    position:relative; overflow:hidden;
+  }
+
+  /* Corner ticks */
+  .tick{ position:absolute; width:14px; height:14px; border-color: rgba(184,115,51,0.55);}
+  .tick.tl{ top:14px; left:14px; border-top:1px solid; border-left:1px solid;}
+  .tick.tr{ top:14px; right:14px; border-top:1px solid; border-right:1px solid;}
+  .tick.bl{ bottom:14px; left:14px; border-bottom:1px solid; border-left:1px solid;}
+  .tick.br{ bottom:14px; right:14px; border-bottom:1px solid; border-right:1px solid;}
+
+  /* Mobile list rows */
+  .row-line{
+    background: linear-gradient(90deg, rgba(184,115,51,0.55), rgba(184,115,51,0.05));
+  }
+
+  /* Responsive hub vs stacked */
+  .stage{ aspect-ratio: 16/10; }
+  @media (max-width: 860px){
+    .desktop-map{ display:none; }
+    .mobile-map{ display:block; }
+  }
+  @media (min-width: 861px){
+    .desktop-map{ display:block; }
+    .mobile-map{ display:none; }
+  }
+</style>
+</head>
+<body class="antialiased">
+
+<main class="max-w-[1180px] mx-auto px-5 md:px-8 py-8 md:py-10">
+
+  <!-- Card frame -->
+  <section class="frame grain p-5 md:p-8 relative">
+
+    <span class="tick tl"></span>
+    <span class="tick tr"></span>
+    <span class="tick bl"></span>
+    <span class="tick br"></span>
+
+    <!-- Header -->
+    <header class="flex items-center gap-4 md:gap-5 relative z-10">
+      <div class="relative shrink-0">
+        <span class="hub-halo"></span>
+        <div class="active-ring relative rounded-full"
+             style="width:120px;height:120px;background:linear-gradient(135deg,#1a2a4a,#0F172A);display:flex;align-items:center;justify-content:center;font-size:42px;font-family:'Fraunces',serif;color:#B87333;">BC</div>
+        <span class="absolute bottom-1 right-1 dot-live ring-2 ring-[#0F172A] rounded-full"></span>
+      </div>
+      <div class="min-w-0">
+        <div class="flex items-center gap-3">
+          <h1 class="serif text-[32px] md:text-[42px] leading-none tracking-tight" style="color:#F5F5F0;">Bill Carter</h1>
+          <span class="hidden md:inline-flex items-center gap-2 px-2.5 py-1 rounded-full border text-[10px] mono uppercase tracking-[0.18em]"
+                style="border-color:rgba(184,115,51,0.45); color:#D89A5E;">
+            <span class="dot-live" style="width:6px;height:6px;"></span> Online
+          </span>
+        </div>
+        <p class="mt-2 text-[14px] md:text-[15px]" style="color:rgba(245,245,240,0.65);">
+          AI Assistant, always on
+        </p>
+        <div class="mt-3 hidden md:flex items-center gap-3 mono text-[11px] tracking-[0.2em] uppercase"
+             style="color:rgba(245,245,240,0.35);">
+          <span>MCP</span>
+          <span class="w-8 h-px" style="background:rgba(184,115,51,0.45);"></span>
+          <span>Live Connections</span>
+          <span class="w-8 h-px" style="background:rgba(184,115,51,0.45);"></span>
+          <span>6 Nodes</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Divider -->
+    <div class="mt-6 md:mt-8 h-px w-full" style="background:linear-gradient(90deg, transparent, rgba(184,115,51,0.55), transparent);"></div>
+
+    <!-- DESKTOP MAP -->
+    <div class="desktop-map stage relative mt-6" id="stage">
+
+      <!-- SVG connection lines -->
+      <svg id="wires" class="absolute inset-0 w-full h-full" viewBox="0 0 1000 625" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <radialGradient id="hubGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#B87333" stop-opacity="0.55"/>
+            <stop offset="100%" stop-color="#B87333" stop-opacity="0"/>
+          </radialGradient>
+          <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2.2" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <!-- Hub glow -->
+        <circle cx="180" cy="312" r="120" fill="url(#hubGlow)"/>
+        <!-- lines injected by JS -->
+        <g id="paths"></g>
+        <g id="particles"></g>
+        <!-- Hub dot -->
+        <circle cx="180" cy="312" r="4.5" fill="#D89A5E" filter="url(#softGlow)"/>
+        <circle cx="180" cy="312" r="10" fill="none" stroke="rgba(184,115,51,0.45)" stroke-width="1"/>
+      </svg>
+
+      <!-- Nodes -->
+      <div id="nodes" class="absolute inset-0"></div>
+
+    </div>
+
+    <!-- MOBILE MAP (stacked list with flowing line) -->
+    <div class="mobile-map mt-6 relative">
+      <div class="absolute left-[31px] top-2 bottom-8 w-px row-line"></div>
+      <ul id="mlist" class="space-y-5 relative"></ul>
+    </div>
+
+    <!-- Badges -->
+    <div class="mt-6 flex items-center justify-center gap-2.5">
+      <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mono text-[10px] tracking-[0.16em] uppercase"
+            style="background:rgba(10,16,32,0.85); border:1px solid rgba(184,115,51,0.35); color:#D89A5E; box-shadow:inset 0 1px 0 rgba(255,255,255,0.03);">
+        <span class="rounded-full" style="width:5px;height:5px;background:#D89A5E;box-shadow:0 0 8px rgba(216,154,94,0.8);"></span>
+        5 MCP connections
+      </span>
+      <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mono text-[10px] tracking-[0.16em] uppercase"
+            style="background:rgba(10,16,32,0.85); border:1px solid rgba(184,115,51,0.35); color:#D89A5E; box-shadow:inset 0 1px 0 rgba(255,255,255,0.03);">
+        <span class="rounded-full" style="width:5px;height:5px;background:#D89A5E;box-shadow:0 0 8px rgba(216,154,94,0.8);"></span>
+        2 API integrations
+      </span>
+    </div>
+
+    <!-- Footer: signature -->
+    <footer class="mt-5 flex items-center justify-between">
+      <div class="mono text-[10px] tracking-[0.2em] uppercase" style="color:rgba(245,245,240,0.35);">
+        <span style="color:#D89A5E;">â</span> System Map Â· v1.0
+      </div>
+      <div class="mono text-[11px] tracking-[0.18em] uppercase" style="color:rgba(245,245,240,0.55);">
+        Built by <span class="serif normal-case tracking-normal italic" style="color:#F5F5F0; font-size:14px;">Alec</span>
+      </div>
+    </footer>
+
+  </section>
+</main>
+
+<!-- Icon library (inline SVG, lucide-style strokes) -->
+<template id="icons">
+  <svg data-k="mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+  <svg data-k="calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
+  <svg data-k="heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11h3l2-4 3 8 2-5 2 3h6"/><path d="M20.8 12.9A6 6 0 0 0 12 6.2 6 6 0 0 0 3.2 12.9c.8 3.7 8.8 8.1 8.8 8.1s8-4.4 8.8-8.1Z" opacity=".35"/></svg>
+  <svg data-k="coffee" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h13v7a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4Z"/><path d="M17 10h2a3 3 0 0 1 0 6h-2"/><path d="M8 3c0 1 1 1 1 2s-1 1-1 2M12 3c0 1 1 1 1 2s-1 1-1 2"/></svg>
+  <svg data-k="chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12Z"/><path d="M8.5 11h7M8.5 14h4.5"/></svg>
+  <svg data-k="laptop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="11" rx="2"/><path d="M2 20h20"/></svg>
+  <svg data-k="bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.6 2H4.4Z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
+  <svg data-k="document" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h8l5 5v13a0 0 0 0 1 0 0H7a0 0 0 0 1 0 0V3Z"/><path d="M14 3v6h6"/><path d="M9 14h8M9 17h6M9 11h4"/></svg>
+</template>
+
+<script>
+  // Node data
+  const NODES = [
+    { k:'mail',     tag:'Gmail Â· Inbox Zero',     ttl:'Gmail Inbox Zero',         sub:'Drafts replies, keeps inbox at zero.' },
+    { k:'calendar', tag:'Calendar Â· Scheduling',  ttl:'Calendar Scheduling',      sub:'Books reminders and events automatically.' },
+    { k:'heart',    tag:'Daily Health Brief',     ttl:'Daily Health Briefing',    sub:'A quiet morning summary, waiting before Iâm awake.' },
+    { k:'laptop',   tag:'Computer Â· Access',      ttl:'Computer Access',          sub:'Own login, own permissions.' },
+    { k:'bell',     tag:'Calendar Â· Invites',     ttl:'Calendar Invites for Me',  sub:'Never misses a deadline, like vehicle renewal.' },
+    { k:'document', tag:'Newsletter Â· Prep',      ttl:'Newsletter Prep',          sub:'Helps organize Between Calls.' },
+  ];
+
+  const icons = document.getElementById('icons');
+  function iconSVG(k){
+    const src = icons.content.querySelector(`svg[data-k="${k}"]`);
+    return src ? src.cloneNode(true) : null;
+  }
+
+  // DESKTOP: lay nodes along an arc to the right of the hub
+  const stage = document.getElementById('stage');
+  const nodesWrap = document.getElementById('nodes');
+  const pathsG = document.getElementById('paths');
+  const particlesG = document.getElementById('particles');
+
+  // Viewbox coords
+  const VB = { w:1000, h:625 };
+  const HUB = { x:180, y:312 };
+
+  // Compute node positions on a vertical arc to the right
+  const N = NODES.length;
+  const positions = NODES.map((_, i) => {
+    // angles from -62deg to +62deg
+    const t = N === 1 ? 0 : (i/(N-1)) * 2 - 1; // -1..1
+    const ang = t * 62 * (Math.PI/180);
+    const r = 560;
+    // Stagger radius slightly for organic feel
+    const rr = r + (i%2===0 ? -22 : 18);
+    const x = HUB.x + Math.cos(ang) * rr;
+    const y = HUB.y + Math.sin(ang) * rr * 0.48; // compress vertically
+    return { x, y };
+  });
+
+  // Draw paths (gentle curves)
+  positions.forEach((p, i) => {
+    const dx = p.x - HUB.x, dy = p.y - HUB.y;
+    const mx = HUB.x + dx*0.55;
+    const my = HUB.y + dy*0.15; // curve control
+    const d = `M ${HUB.x} ${HUB.y} Q ${mx} ${my} ${p.x} ${p.y}`;
+
+    const base = document.createElementNS('http://www.w3.org/2000/svg','path');
+    base.setAttribute('d', d); base.setAttribute('class','path-base');
+    pathsG.appendChild(base);
+
+    const pulse = document.createElementNS('http://www.w3.org/2000/svg','path');
+    pulse.setAttribute('d', d); pulse.setAttribute('class','path-pulse');
+    pulse.style.animationDelay = `${(i*0.35).toFixed(2)}s`;
+    pathsG.appendChild(pulse);
+
+    // Particle (circle animating along path)
+    const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('r', '2.2');
+    circle.setAttribute('class','particle');
+    const anim = document.createElementNS('http://www.w3.org/2000/svg','animateMotion');
+    anim.setAttribute('dur', (6 + (i%3)*1.2) + 's');
+    anim.setAttribute('repeatCount','indefinite');
+    anim.setAttribute('path', d);
+    anim.setAttribute('rotate','auto');
+    anim.setAttribute('begin', `${(i*0.45).toFixed(2)}s`);
+    circle.appendChild(anim);
+    particlesG.appendChild(circle);
+
+    // A second, slower particle for layered feel
+    const c2 = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c2.setAttribute('r','1.3');
+    c2.setAttribute('class','particle');
+    c2.setAttribute('opacity','0.7');
+    const a2 = document.createElementNS('http://www.w3.org/2000/svg','animateMotion');
+    a2.setAttribute('dur', (9 + (i%4)) + 's');
+    a2.setAttribute('repeatCount','indefinite');
+    a2.setAttribute('path', d);
+    a2.setAttribute('begin', `${(i*0.7 + 1).toFixed(2)}s`);
+    c2.appendChild(a2);
+    particlesG.appendChild(c2);
+  });
+
+  // Place node DOM cards using percentage positions
+  NODES.forEach((n, i) => {
+    const p = positions[i];
+    const left = (p.x / VB.w) * 100;
+    const top  = (p.y / VB.h) * 100;
+
+    const el = document.createElement('div');
+    el.className = 'node';
+    el.style.left = left + '%';
+    el.style.top  = top + '%';
+
+    const chip = document.createElement('div');
+    chip.className = 'chip';
+    const svg = iconSVG(n.k);
+    if (svg){ svg.setAttribute('width','28'); svg.setAttribute('height','28'); chip.appendChild(svg); }
+    el.appendChild(chip);
+
+    const tag = document.createElement('div');
+    tag.className = 'tag';
+    tag.textContent = n.tag;
+    el.appendChild(tag);
+
+    const tip = document.createElement('div');
+    tip.className = 'tip';
+    tip.innerHTML = `<div class="ttl">${n.ttl}</div><div class="sub">${n.sub}</div>`;
+    el.appendChild(tip);
+
+    nodesWrap.appendChild(el);
+  });
+
+  // MOBILE: stacked list
+  const mlist = document.getElementById('mlist');
+  NODES.forEach((n, i) => {
+    const li = document.createElement('li');
+    li.className = 'flex items-start gap-4';
+    const chip = document.createElement('div');
+    chip.className = 'shrink-0 flex items-center justify-center';
+    chip.style.cssText = `
+      width:64px;height:64px;border-radius:16px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+      border:1px solid rgba(184,115,51,0.35);
+      color:#D89A5E;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.4), 0 0 20px rgba(184,115,51,0.15);
+    `;
+    const svg = iconSVG(n.k); if (svg){ svg.setAttribute('width','28'); svg.setAttribute('height','28'); chip.appendChild(svg); }
+
+    const text = document.createElement('div');
+    text.className = 'pt-1';
+    text.innerHTML = `
+      <div class="mono text-[10px] tracking-[0.18em] uppercase" style="color:rgba(245,245,240,0.45);">${n.tag}</div>
+      <div class="serif text-[18px] mt-0.5" style="color:#FFE6C7;">${n.ttl}</div>
+      <div class="text-[13px] mt-1" style="color:rgba(245,245,240,0.72);">${n.sub}</div>
+    `;
+    li.appendChild(chip); li.appendChild(text);
+    mlist.appendChild(li);
+  });
+</script>
+
+</body>
+</html>
