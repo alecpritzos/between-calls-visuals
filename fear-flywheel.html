@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Fear Flywheel â Anthropic</title>
+<title>Fear Flywheel — Anthropic</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
@@ -29,7 +29,7 @@ const EVENTS = [
   {
     date: "FEBRUARY 2019",
     source: "OPENAI BLOG",
-    headline: "GPT-2: Too DangerousÂ toÂ Release",
+    headline: "GPT-2: Too Dangerous to Release",
     press: [
       { outlet: "The Guardian", line: "OpenAI withholds its new AI over misuse fears" },
       { outlet: "TechCrunch",   line: "Researchers warn of weaponized text generation" },
@@ -44,13 +44,13 @@ const EVENTS = [
   {
     date: "JULY 2023",
     source: "U.S. SENATE JUDICIARY SUBCOMMITTEE",
-    headline: "Bioweapons in 2â3Â Years â\nSenate Testimony",
+    headline: "Bioweapons in 2‑3 Years —\nSenate Testimony",
     press: [
       { outlet: "Reuters",   line: "Anthropic CEO warns AI could aid bioterror" },
       { outlet: "NYT",       line: "Frontier AI, heard under oath on Capitol Hill" },
       { outlet: "Bloomberg", line: "The biosecurity case against moving fast" },
     ],
-    funding: { amount: "$6B", detail: "Amazon $4B Â· Google $2B" },
+    funding: { amount: "$6B", detail: "Amazon $4B · Google $2B" },
     startVal: 0, endVal: 18,
     gapDays: 64,
   },
@@ -83,10 +83,10 @@ const EVENTS = [
   {
     date: "APRIL 2026",
     source: "ANTHROPIC CAPABILITIES REPORT",
-    headline: "Mythos: Too PowerfulÂ toÂ Release",
+    headline: "Mythos: Too Powerful to Release",
     press: [
       { outlet: "PBS",         line: "Anthropic pauses deployment of next flagship" },
-      { outlet: "Bloomberg",   line: "The model the lab won't ship â yet" },
+      { outlet: "Bloomberg",   line: "The model the lab won't ship — yet" },
       { outlet: "Stratechery", line: "Scarcity as safety, safety as moat" },
     ],
     funding: { amount: "$800B", detail: "Valuation offers" },
@@ -131,8 +131,6 @@ function FearFlywheel() {
   const [t, setT] = useState(0);
   const rafRef = useRef(0);
   const startRef = useRef(0);
-  const recordingRef = useRef(false);
-  const [recording, setRecording] = useState(false);
   const stageRef = useRef(null);
 
   useEffect(() => {
@@ -196,9 +194,6 @@ function FearFlywheel() {
         counterVal={counterVal}
         stageRef={stageRef}
       />
-      {/* Unobtrusive record button, outside the scaled stage so it's excluded from capture */}
-      <RecordButton stageRef={stageRef} recording={recording} setRecording={setRecording}
-        startRef={startRef} />
     </div>
   );
 }
@@ -249,7 +244,7 @@ function Stage1920({ ev, stageIdx, stageT, inRewind, counterVal, stageRef }) {
       <div className="absolute top-12 left-16 flex items-center gap-6">
         <div className="w-10 h-[2px] bg-amber-500" />
         <div className="font-mono-ed text-[14px] tracking-[0.28em] uppercase text-zinc-400">
-          The Flywheel &nbsp;Â·&nbsp; A Pattern in Five Acts
+          The Flywheel &nbsp;·&nbsp; A Pattern in Five Acts
         </div>
       </div>
 
@@ -270,7 +265,7 @@ function Stage1920({ ev, stageIdx, stageT, inRewind, counterVal, stageRef }) {
       {/* Footer line */}
       <div className="absolute bottom-12 left-16 right-16 flex justify-between items-end">
         <div className="font-serif-ed italic text-zinc-500 text-[18px]">
-          Anthropic, 2019 â 2026
+          Anthropic, 2019 – 2026
         </div>
         <div className="font-mono-ed text-[12px] tracking-[0.3em] uppercase text-zinc-600">
           Sources: public statements, press, funding announcements
@@ -311,7 +306,7 @@ function StageContent({ ev, stageIdx, stageT }) {
         }}
       >
         <div className="font-mono-ed text-[15px] tracking-[0.3em] uppercase text-amber-500 mb-6">
-          {ev.date} &nbsp;â&nbsp; <span className="text-zinc-400">{ev.source}</span>
+          {ev.date} &nbsp;—&nbsp; <span className="text-zinc-400">{ev.source}</span>
         </div>
         <div
           className="font-serif-ed font-medium text-zinc-50 leading-[1.02] tracking-[-0.02em] whitespace-pre-line"
@@ -322,7 +317,7 @@ function StageContent({ ev, stageIdx, stageT }) {
         <div className="mt-8 flex items-center gap-5">
           <div className="w-20 h-[1px] bg-amber-600" />
           <div className="font-serif-ed italic text-zinc-400 text-[22px]">
-            Stage {stageIdx + 1} of 4 &nbsp;Â·&nbsp; {["The Warning","The Press","The Raise","The Valuation"][stageIdx]}
+            Stage {stageIdx + 1} of 4 &nbsp;·&nbsp; {["The Warning","The Press","The Raise","The Valuation"][stageIdx]}
           </div>
         </div>
       </div>
@@ -379,7 +374,7 @@ function PressRow({ press, show, stageIdx, stageT }) {
               <div className="mt-6 flex items-center gap-3">
                 <div className="w-6 h-[1px] bg-zinc-700" />
                 <div className="font-mono-ed text-[10px] tracking-[0.25em] uppercase text-zinc-500">
-                  Press Â· 0{i+1}
+                  Press · 0{i+1}
                 </div>
               </div>
             </div>
@@ -418,7 +413,7 @@ function RaiseCard({ ev, show, stageIdx, stageT }) {
         <div className="relative border border-amber-600/40 bg-zinc-900/60 px-16 py-10 max-w-[1400px]">
           <div className="absolute -top-[1px] left-0 w-24 h-[2px] bg-amber-500" />
           <div className="font-mono-ed text-[13px] tracking-[0.32em] uppercase text-amber-500 mb-4">
-            Precedent &nbsp;Â·&nbsp; No Anthropic funding yet
+            Precedent &nbsp;·&nbsp; No Anthropic funding yet
           </div>
           <div className="font-serif-ed text-zinc-50 leading-tight" style={{ fontSize: 52 }}>
             {ev.precedentLine}
@@ -492,7 +487,7 @@ function Counter({ value, inRewind, gapDays, showGap }) {
           color: '#f59e0b',
         }}
       >
-        Warning â Funding: <span className="text-zinc-300">{gapDays ?? 0} days</span>
+        Warning → Funding: <span className="text-zinc-300">{gapDays ?? 0} days</span>
       </div>
     </div>
   );
@@ -530,148 +525,9 @@ function EventRail({ evIdx }) {
   );
 }
 
-// ---------- Record Button (hidden during recording) ----------
-function RecordButton({ stageRef, recording, setRecording, startRef }) {
-  const [hovered, setHovered] = useState(false);
-  const [status, setStatus] = useState("Export 30s MP4");
-
-  const exportVideo = async () => {
-    if (recording) return;
-    const stageEl = stageRef.current;
-    if (!stageEl) return;
-
-    // Reset loop clock so recording captures a clean, fresh loop start
-    startRef.current = performance.now();
-
-    setRecording(true);
-    setStatus("Preparing\u2026");
-
-    // We'll draw the stage into a canvas each frame via html2canvas fallback... but we don't have html2canvas.
-    // Instead, use captureStream on a hidden canvas where we repeatedly rasterize via SVG foreignObject.
-
-    const W = 1920, H = 1080, FPS = 30;
-    const canvas = document.createElement('canvas');
-    canvas.width = W; canvas.height = H;
-    const ctx = canvas.getContext('2d');
-
-    const stream = canvas.captureStream(FPS);
-    // Prefer MP4 if supported, else WebM
-    const mimeCandidates = [
-      'video/mp4;codecs=avc1.42E01E',
-      'video/mp4',
-      'video/webm;codecs=vp9',
-      'video/webm;codecs=vp8',
-      'video/webm',
-    ];
-    let mime = '';
-    for (const m of mimeCandidates) {
-      if (window.MediaRecorder && MediaRecorder.isTypeSupported(m)) { mime = m; break; }
-    }
-    if (!mime) {
-      alert('MediaRecorder not supported in this browser.');
-      setRecording(false); setStatus("Export 30s MP4");
-      return;
-    }
-    const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
-    const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 12_000_000 });
-    const chunks = [];
-    recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
-    recorder.onstop = () => {
-      const blob = new Blob(chunks, { type: mime });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `anthropic-fear-flywheel.${ext}`;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      setRecording(false);
-      setStatus(ext === 'mp4' ? "Export 30s MP4" : "Export 30s WebM");
-    };
-
-    setStatus("Recording\u2026 0%");
-
-    // Rasterize via SVG foreignObject (cloning the live stage DOM each frame)
-    const rasterize = () => {
-      try {
-        const clone = stageEl.cloneNode(true);
-        // Reset the scale transform on the clone's root; we want it at native 1920x1080.
-        clone.style.transform = 'none';
-        clone.style.position = 'static';
-        clone.style.width = W + 'px';
-        clone.style.height = H + 'px';
-
-        const xml = new XMLSerializer().serializeToString(clone);
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
-          <foreignObject width="100%" height="100%">
-            <div xmlns="http://www.w3.org/1999/xhtml" style="width:${W}px;height:${H}px;">
-              ${xml}
-            </div>
-          </foreignObject>
-        </svg>`;
-        const img = new Image();
-        img.onload = () => {
-          ctx.fillStyle = '#09090b';
-          ctx.fillRect(0, 0, W, H);
-          ctx.drawImage(img, 0, 0, W, H);
-        };
-        img.onerror = () => {};
-        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-      } catch (e) {
-        // ignore
-      }
-    };
-
-    recorder.start();
-
-    const DURATION_MS = LOOP_FULL * 1000; // full loop incl. rewind = 34s, but user wants "30s loop". We cut at 30s.
-    const RECORD_MS = 30000;
-
-    const startTs = performance.now();
-    let frame = 0;
-    const frameInterval = 1000 / FPS;
-    const loop = () => {
-      const now = performance.now();
-      const elapsed = now - startTs;
-      rasterize();
-      setStatus(`Recording\u2026 ${Math.min(100, Math.floor(elapsed / RECORD_MS * 100))}%`);
-      if (elapsed >= RECORD_MS) {
-        recorder.stop();
-        return;
-      }
-      // Pace to ~FPS
-      const nextFrame = startTs + (++frame) * frameInterval;
-      const wait = Math.max(0, nextFrame - performance.now());
-      setTimeout(loop, wait);
-    };
-    loop();
-  };
-
-  if (recording) return null; // hidden during recording so it's not in the capture
-
-  return (
-    <button
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onClick={exportVideo}
-      className="fixed bottom-4 right-4 z-50 font-mono-ed text-[11px] tracking-[0.25em] uppercase"
-      style={{
-        padding: '10px 14px',
-        color: hovered ? '#fbbf24' : '#a1a1aa',
-        background: 'rgba(9,9,11,0.7)',
-        border: '1px solid ' + (hovered ? '#f59e0b' : '#3f3f46'),
-        backdropFilter: 'blur(6px)',
-        cursor: 'pointer',
-        transition: 'all 200ms',
-      }}
-    >
-      {status}
-    </button>
-  );
-}
-
 // ---------- Mount ----------
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(<FearFlywheel />);
 </script>
 </body>
 </html>
-
