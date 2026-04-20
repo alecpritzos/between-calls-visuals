@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Between Calls -- Interactive Visuals</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #0a1628; --copper: #b87333; --bone: #f5f0e8; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--bone); font-family: 'Inter', system-ui, sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 60px 24px; }
+  h1 { font-family: 'Fraunces', serif; font-size: 42px; font-weight: 500; letter-spacing: -0.02em; margin-bottom: 8px; }
+  .tagline { font-size: 15px; color: rgba(245,240,232,0.55); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 48px; }
+  .grid { display: grid; grid-template-columns: 1fr; gap: 28px; max-width: 720px; width: 100%; }
+  a.card { display: block; text-decoration: none; color: var(--bone); border: 1px solid rgba(184,115,51,0.30); border-radius: 12px; padding: 28px 32px; background: linear-gradient(180deg, rgba(184,115,51,0.06), rgba(184,115,51,0.02)); transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s; }
+  a.card:hover { border-color: rgba(184,115,51,0.70); transform: translateY(-2px); box-shadow: 0 12px 40px rgba(184,115,51,0.15); }
+  .card h2 { font-family: 'Fraunces', serif; font-size: 24px; font-weight: 500; margin-bottom: 8px; }
+  .card p { font-size: 14px; color: rgba(245,240,232,0.65); line-height: 1.5; }
+  .card .tag { display: inline-block; margin-top: 12px; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--copper); border: 1px solid rgba(184,115,51,0.35); border-radius: 4px; padding: 3px 8px; }
+  footer { margin-top: 60px; font-size: 12px; color: rgba(245,240,232,0.30); letter-spacing: 0.08em; }
+</style>
+</head>
+<body>
+  <h1>Between Calls</h1>
+  <div class="tagline">Interactive Visuals</div>
+  <div class="grid">
+    <a class="card" href="imaging-trend.html">
+      <h2>What Actually Happened to Radiologists</h2>
+      <p>Animated dual-chart: radiologist headcount vs CT scan volume, 2014-2026. Hinton said stop training them. The data says otherwise.</p>
+      <span class="tag">Animated SVG</span>
+    </a>
+    <a class="card" href="fear-flywheel.html">
+      <h2>The Anthropic Fear Flywheel</h2>
+      <p>Five acts of scary announcement, press cycle, funding raise. Valuation counter climbs from $0 to $800B. A pattern in plain sight.</p>
+      <span class="tag">React Animation</span>
+    </a>
+    <a class="card" href="bill-carter.html">
+      <h2>Bill Carter -- Node Map</h2>
+      <p>Hub-and-spoke visualization of Bill's live MCP connections: Gmail, Calendar, Health Brief, Computer Access, and more.</p>
+      <span class="tag">Interactive Map</span>
+    </a>
+  </div>
+  <footer>Between Calls by Alec Pritzos</footer>
+</body>
+</html>
